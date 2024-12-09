@@ -1,0 +1,43 @@
+{{- /*gotype: github.com/quix-labs/multipress/config.Config*/ -}}
+name: "{{ .Project }}-model"
+services:
+    wordpress:
+        build:
+            dockerfile: ./wordpress.Dockerfile
+        image: '{{.Project}}-wordpress'
+        container_name: "{{.ModelContainerName}}"
+        restart: "always"
+        environment:
+            WORDPRESS_DB_HOST: "mysql"
+            WORDPRESS_DB_USER: "{{.Model.Credentials.DBUser}}"
+            WORDPRESS_DB_PASSWORD: "{{.Model.Credentials.DBPassword}}"
+            WORDPRESS_DB_NAME: "{{.Model.Credentials.DBName}}"
+            WORDPRESS_CONFIG_EXTRA: |
+                define('WP_HOME', '{{.ModelUrl}}');
+                define('WP_SITEURL', '{{.ModelUrl}}');
+                define('FS_METHOD', 'direct');
+        user: "{{.Uid}}:{{.Gid}}"
+        volumes:
+            - "{{.ModelVolumePath}}:/var/www/html"
+        networks:
+            - "{{.NetworkName}}"
+        labels:
+            caddy: "{{.ModelUrl}}"
+            caddy.tls.issuer: {{.Caddy.TLSIssuer}}
+            caddy.encode: zstd gzip
+            caddy.reverse_proxy: {{`"{{upstreams 80}}"`}}
+        {{ if ne .Model.Resources.Memory "" -}}
+        deploy:
+            resources:
+                limits:
+                    memory: {{ .Model.Resources.Memory }}
+        {{- end }}
+
+        healthcheck:
+            test: curl --fail http://localhost || exit 1
+            interval: 1s
+            timeout: 5s
+            retries: 55
+networks:
+    "{{.NetworkName}}":
+        external: true

@@ -1,0 +1,43 @@
+{{- /*gotype: github.com/quix-labs/multipress/cmd/replicate.InstanceTmplData*/ -}}
+name: "{{ .Config.Project }}-{{ .Identifier }}"
+services:
+    wordpress:
+        build:
+            dockerfile: ./wordpress.Dockerfile
+        image: '{{.Config.Project }}-wordpress'
+        container_name: "{{ .Config.InstanceContainerName .Identifier }}"
+        restart: "always"
+        environment:
+            WORDPRESS_DB_HOST: "mysql"
+            WORDPRESS_DB_USER: "{{ .Credentials.DBUser }}"
+            WORDPRESS_DB_PASSWORD: "{{ .Credentials.DBPassword }}"
+            WORDPRESS_DB_NAME: "{{ .Credentials.DBName }}"
+            WORDPRESS_CONFIG_EXTRA: |
+                define('WP_HOME', '{{.Config.InstanceUrl .Identifier}}');
+                define('WP_SITEURL', '{{.Config.InstanceUrl .Identifier}}');
+                define('FS_METHOD', 'direct');
+        user: "{{.Config.Uid}}:{{.Config.Gid}}"
+        volumes:
+            - "{{ .Config.InstanceVolumePath .Identifier }}:/var/www/html"
+        networks:
+            - "{{.Config.NetworkName}}"
+        labels:
+            caddy: "{{.Config.InstanceUrl .Identifier}}"
+            caddy.tls.issuer: {{.Config.Caddy.TLSIssuer}}
+            caddy.encode: zstd gzip
+            caddy.reverse_proxy: {{`"{{upstreams 80}}"`}}
+        {{ if ne .Config.Instances.Resources.Memory "" -}}
+        deploy:
+            resources:
+                limits:
+                    memory: {{ .Config.Instances.Resources.Memory }}
+        {{- end }}
+
+        healthcheck:
+            test: curl --fail http://localhost || exit 1
+            interval: 1s
+            timeout: 5s
+            retries: 55
+networks:
+    "{{.Config.NetworkName}}":
+        external: true

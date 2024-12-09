@@ -1,0 +1,46 @@
+{{- /*gotype: github.com/quix-labs/multipress/config.Config*/ -}}
+name: "{{ .Project }}-mysql"
+services:
+    mysql:
+        image: "mysql:latest"
+        container_name: "{{ .MysqlContainerName }}"
+        restart: "always"
+        environment:
+            MYSQL_ROOT_PASSWORD: "{{ .MySql.RootPassword }}"
+        volumes:
+            - "{{.MysqlVolumePath}}:/var/lib/mysql"
+        networks:
+            - "{{ .NetworkName }}"
+        user: "{{.Uid}}:{{.Gid}}"
+
+        {{ if ne .MySql.Resources.Memory "" -}}
+        deploy:
+            resources:
+                limits:
+                    memory: {{ .MySql.Resources.Memory }}
+        {{- end }}
+
+        healthcheck:
+            test: mysqladmin ping -h 127.0.0.1 -u root --password="{{ .MySql.RootPassword }}"
+            interval: 1s
+            timeout: 5s
+            retries: 55
+
+    phpmyadmin:
+        image: phpmyadmin/phpmyadmin
+        container_name: "{{ .PhpMyAdminContainerName }}"
+        restart: "always"
+        links:
+            - mysql
+        environment:
+            PMA_HOST: mysql
+            PMA_PORT: 3306
+        labels:
+            caddy: "{{ .PhpMyAdminUrl }}"
+            caddy.tls.issuer: "{{ .Caddy.TLSIssuer }}"
+            caddy.reverse_proxy: {{ `"{{upstreams 80}}"` }}
+        networks:
+            - "{{ .NetworkName }}"
+networks:
+    "{{ .NetworkName }}":
+        external: true

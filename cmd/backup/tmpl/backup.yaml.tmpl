@@ -1,0 +1,18 @@
+{{- /*gotype: github.com/quix-labs/multipress/config.Config*/ -}}
+name: "{{ .Project }}-backups"
+services:
+    backups:
+        image: "peterberweiler/fileserver"
+        container_name: "{{.BackupsContainerName}}"
+        restart: "always"
+        volumes:
+            - "{{.BackupsPath}}:/public:ro"
+        networks:
+            - "{{.NetworkName}}"
+        labels:
+            caddy: "{{.BackupsUrl}}"
+            caddy.tls.issuer: "{{.Caddy.TLSIssuer}}"
+            caddy.reverse_proxy: {{ `"{{upstreams 80}}"` }}
+networks:
+    "{{.NetworkName}}":
+        external: true

@@ -1,0 +1,30 @@
+{{- /*gotype: github.com/quix-labs/multipress/config.Config*/ -}}
+name: "{{ .Project }}-caddy"
+services:
+    caddy:
+        image: "lucaslorentz/caddy-docker-proxy:ci-alpine"
+        container_name: "{{.CaddyContainerName}}"
+        restart: "always"
+        cap_add:
+            - NET_ADMIN
+        ports:
+            - "80:80"
+            - "443:443/tcp"
+            - "443:443/udp"
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+
+        {{ if ne .Caddy.Resources.Memory "" -}}
+        deploy:
+            resources:
+                limits:
+                    memory: {{ .Caddy.Resources.Memory }}
+        {{- end }}
+
+        environment:
+            CADDY_INGRESS_NETWORKS: "{{.NetworkName}}"
+        networks:
+            - "{{.NetworkName}}"
+networks:
+    "{{.NetworkName}}":
+        external: true
