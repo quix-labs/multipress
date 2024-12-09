@@ -19,7 +19,7 @@ jobs:
 
       - name: Build static release
         run: |
-          CGO_ENABLED=0 go build --ldflags="-w -s" --output ./build/multipress
+          CGO_ENABLED=0 go build --ldflags="-w -s" -o ./build/multipress .
 
       - name: Upload Release Asset
         uses: csexton/release-asset-action@v3
