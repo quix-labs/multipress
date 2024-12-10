@@ -1,4 +1,4 @@
-package cmd
+package _cmd_old
 
 import (
 	"github.com/quix-labs/multipress/cmd/backup"
